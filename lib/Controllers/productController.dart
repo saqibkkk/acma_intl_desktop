@@ -582,6 +582,10 @@ class ProductController extends GetxController {
     );
   }
 
+
+
+
+
   Future deleteProductNames(
       {required String productNameUid, required String productName}) {
     return showDialog(
