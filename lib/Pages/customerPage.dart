@@ -1,5 +1,6 @@
 import 'package:acma_intl_desktop/APIs/customerApi.dart';
 import 'package:acma_intl_desktop/Controllers/customerController.dart';
+import 'package:acma_intl_desktop/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,6 +20,7 @@ class ClientsPage extends StatefulWidget {
 class _ClientsPageState extends State<ClientsPage> {
   final customerController = Get.put(CustomerController());
   final customerApi = Get.put(CustomerApi());
+  final Utils utils = Utils();
 
   @override
   void initState() {
@@ -31,51 +33,24 @@ class _ClientsPageState extends State<ClientsPage> {
     return Scaffold(
       body: Column(
         children: [
-          // Gradient Header with Animated Text
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue, Colors.purple],
-              ),
-            ),
-            child: TweenAnimationBuilder(
-              tween: Tween<double>(begin: 0, end: 1),
-              duration: const Duration(seconds: 1),
-              builder: (context, double value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, (1 - value) * 20),
-                    child: const Text(
-                      "✨ ACMA INTERNATIONAL",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          utils.customPageHeader(),
           Align(
             alignment: Alignment.centerRight,
-            child: ElevatedButton(
-                onPressed: () {
-                  customerController.addCustomer();
-                },
-                child: Text('Manage Customer')),
+            child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: utils.customElevatedFunctionButton(
+                    onPressed: () {
+                      customerController.addCustomer();
+                    },
+                    btnName: 'Add Customers',
+                    bgColor: Colors.blueGrey,
+                    fgColor: Colors.white)),
           ),
-
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: TextField(
-              // controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: 'Search Customers...',
                 prefixIcon: const Icon(Icons.search),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -83,36 +58,59 @@ class _ClientsPageState extends State<ClientsPage> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               onChanged: (value) {
-                // productController.searchText.value = value;
+                customerController.searchText.value = value;
               },
             ),
           ),
-
+          SizedBox(
+            height: 10,
+          ),
           Expanded(
             child: Obx(() {
               if (customerController.isLoading.value) {
-                return const Center(
-                    child: CircularProgressIndicator(
-                  color: Colors.indigoAccent,
-                ));
+                return Center(
+                    child: utils.customCircularProgressingIndicator());
               }
               if (customerController.customer.isEmpty) {
-                return const Center(child: Text("No customer found."));
+                return const Center(
+                    child: Text(
+                  "No Customers found!",
+                  style:
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ));
               }
 
               return SizedBox(
                 width: MediaQuery.of(context).size.width,
                 child: DataTable(
-                  headingRowHeight: 60,
+                  headingRowHeight: 40,
                   dataRowHeight: 40,
-                  headingRowColor:
-                      WidgetStateProperty.all(Colors.blue.shade100),
+                  headingRowColor: WidgetStateProperty.all(Colors.blueGrey),
                   columns: [
-                    const DataColumn(label: Text('Customer Name')),
-                    const DataColumn(label: Text('Contact Number')),
-                    const DataColumn(label: Text('Address')),
                     const DataColumn(
-                        label: Text('Actions')), // <-- New column for button
+                        label: Text(
+                      'Customer Name',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    )),
+                    const DataColumn(
+                        label: Text(
+                      'Contact Number',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    )),
+                    const DataColumn(
+                        label: Text(
+                      'Address',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    )),
+                    const DataColumn(
+                        label: Text(
+                      'Actions',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    )), // <-- New column for button
                   ],
                   rows: customerController.filteredCustomers.map((customer) {
                     return DataRow(
@@ -136,19 +134,22 @@ class _ClientsPageState extends State<ClientsPage> {
                               IconButton(
                                 onPressed: () async {
                                   await customerController.deleteCustomer(
-                                      customerUid: customer.customerUid);
+                                      customerUid: customer.customerUid,
+                                      customerName: customer.customerName);
                                 },
                                 icon: Icon(
                                   Icons.delete,
                                   color: Colors.red,
                                 ),
                               ),
-                              TextButton(
-                                onPressed: () async {
-                                  await customerController.selectBillProducts(customerUid: customer.customerUid, customerName: customer.customerName);
-                                },
-                                child: const Text("Generate Bill"),
-                              ),
+                              utils.customTextCancelButton(
+                                  onPressed: () async {
+                                    await customerController.selectBillProducts(
+                                        customerUid: customer.customerUid,
+                                        customerName: customer.customerName);
+                                  },
+                                  btnName: 'Generate Bill',
+                                  textColor: Colors.blue)
                             ],
                           ),
                         ),

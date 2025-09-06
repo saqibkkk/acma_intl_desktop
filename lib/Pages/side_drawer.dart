@@ -17,30 +17,46 @@ class _SideDrawerState extends State<SideDrawer> {
       final isSelected = navCtrl.selectedPage.value == pageType;
       final showTitle = navCtrl.isDrawerOpen.value;
 
-      return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        leading: SizedBox(
-          width: 50, // ✅ Limit leading width to avoid layout error
-          child: Icon(
-            icon,
-            color: isSelected ? Colors.blue : Colors.grey,
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Material(
+          color: isSelected ? Colors.red.shade100 : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          elevation: isSelected ? 6 : 2,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => navCtrl.setPage(pageType),
+            child: SizedBox(
+              height: 50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  const SizedBox(width: 12),
+                  Icon(
+                    icon,
+                    color: isSelected ? Colors.red : Colors.blueGrey,
+                  ),
+                  if (showTitle) ...[
+                    const SizedBox(width: 16),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? Colors.red : Colors.blueGrey[800],
+                      ),
+                    ),
+                  ] else
+                    const SizedBox.shrink(), // keeps ListTile error away
+                ],
+              ),
+            ),
           ),
         ),
-        title: showTitle
-            ? Text(
-                title,
-                style: TextStyle(
-                    color: isSelected ? Colors.lightBlue : Colors.black,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 16),
-              )
-            : null, // no title when collapsed
-        onTap: () => navCtrl.setPage(pageType),
-        selected: isSelected,
       );
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +64,7 @@ class _SideDrawerState extends State<SideDrawer> {
       return AnimatedContainer(
         width: navCtrl.isDrawerOpen.value ? 230 : 70,
         duration: const Duration(milliseconds: 1),
-        color: Colors.grey[300],
+        color: Colors.blueGrey[200],
         child: Column(
           children: [
             const SizedBox(
@@ -59,7 +75,11 @@ class _SideDrawerState extends State<SideDrawer> {
               child: IconButton(
                 icon: Icon(navCtrl.isDrawerOpen.value
                     ? Icons.arrow_back_ios
-                    : Icons.arrow_forward_ios),
+                    : Icons.arrow_forward_ios,
+                    color: navCtrl.isDrawerOpen.value
+                  ? Colors.red
+                  :Colors.white,
+                ),
                 onPressed: navCtrl.toggleDrawer,
               ),
             ),
@@ -79,7 +99,7 @@ class _SideDrawerState extends State<SideDrawer> {
                       padding: EdgeInsets.all(8.0),
                       child: Text(
                         'Version 2.1.2',
-                        style: TextStyle(color: Colors.black87, fontSize: 12),
+                        style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                     ),
                   )
@@ -89,7 +109,7 @@ class _SideDrawerState extends State<SideDrawer> {
                       padding: EdgeInsets.all(8.0),
                       child: Text(
                         '2.1.1',
-                        style: TextStyle(color: Colors.black87, fontSize: 12),
+                        style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                     ),
                   )

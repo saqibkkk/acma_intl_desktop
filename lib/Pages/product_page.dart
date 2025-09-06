@@ -16,6 +16,7 @@ class StockPage extends StatefulWidget {
 class _StockPageState extends State<StockPage> {
   final productController = Get.put(ProductController());
   final stockApi = Get.put(ProductApi());
+  final Utils utils = Utils();
   final TextEditingController searchController = TextEditingController();
 
   int? _sortColumnIndex;
@@ -28,15 +29,28 @@ class _StockPageState extends State<StockPage> {
     productController.fetchProductsNames();
   }
 
-  void _sort<T>(Comparable<T> Function(ProductDetailsModel product) getField,
-      int columnIndex, bool ascending) {
+  void _sort<T>(
+    Comparable<T> Function(ProductDetailsModel product) getField,
+    int columnIndex,
+    bool ascending,
+  ) {
     productController.productsDetails.sort((a, b) {
       final aValue = getField(a);
       final bValue = getField(b);
+
+      if (aValue is String && bValue is String) {
+        final aInt = int.tryParse(aValue as String);
+        final bInt = int.tryParse(bValue as String);
+        if (aInt != null && bInt != null) {
+          return ascending ? aInt.compareTo(bInt) : bInt.compareTo(aInt);
+        }
+      }
+
       return ascending
           ? Comparable.compare(aValue, bValue)
           : Comparable.compare(bValue, aValue);
     });
+
     setState(() {
       _sortColumnIndex = columnIndex;
       _isAscending = ascending;
@@ -49,46 +63,24 @@ class _StockPageState extends State<StockPage> {
       body: Column(
         children: [
           // Gradient Header with Animated Text
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue, Colors.purple],
-              ),
-            ),
-            child: TweenAnimationBuilder(
-              tween: Tween<double>(begin: 0, end: 1),
-              duration: const Duration(seconds: 1),
-              builder: (context, double value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, (1 - value) * 20),
-                    child: const Text(
-                      "✨ ACMA INTERNATIONAL",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          utils.customPageHeader(),
+
           Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-                onPressed: () {
-                  productController.manageProducts();
-                },
-                child: const Text('Manage Product')),
-          ),
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: utils.customElevatedFunctionButton(
+                  btnName: 'Manage Products',
+                  bgColor: Colors.blueGrey,
+                  fgColor: Colors.white,
+                  onPressed: () {
+                    productController.manageProducts();
+                  },
+                ),
+              )),
 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
@@ -104,86 +96,148 @@ class _StockPageState extends State<StockPage> {
               },
             ),
           ),
-
+          SizedBox(
+            height: 10,
+          ),
           Expanded(
             child: Obx(() {
               if (productController.isLoading.value) {
-                return const Center(
-                    child: CircularProgressIndicator(
-                  color: Colors.indigoAccent,
-                ));
+                return  Center(
+                    child: utils.customCircularProgressingIndicator());
               }
               if (productController.productsDetails.isEmpty) {
-                return const Center(child: Text("No products found."));
+                return const Center(
+                    child: Text('No Products Found!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),));
+
               }
 
               return SizedBox(
-                width: MediaQuery.of(context).size.width,
-                child: DataTable(
-                  sortAscending: _isAscending,
-                  sortColumnIndex: _sortColumnIndex,
-                  headingRowHeight: 60,
-                  dataRowHeight: 40,
-                  headingRowColor:
-                      WidgetStateProperty.all(Colors.blue.shade100),
-                  columns: [
-                    const DataColumn(label: Text('Product Name')),
-                    const DataColumn(label: Text('Catalogue Number')),
-                    const DataColumn(label: Text('Lot Number')),
-                    const DataColumn(label: Text('Number of Holes')),
-                    const DataColumn(label: Text('AKL Number')),
-                    DataColumn(
-                      label: const Text('Pakistan'),
-                      numeric: true,
-                      onSort: (i, asc) =>
-                          _sort((p) => p.availableStockInPakistan, i, asc),
+                  width: MediaQuery.of(context).size.width,
+                  child: IconTheme(
+                    data: const IconThemeData(
+                      color: Colors.red,
                     ),
-                    DataColumn(
-                      label: const Text('Indonesia'),
-                      numeric: true,
-                      onSort: (i, asc) =>
-                          _sort((p) => p.availableStockInIndonesia, i, asc),
-                    ),
-                    DataColumn(
-                      label: const Text('Total Stock'),
-                      numeric: true,
-                      onSort: (i, asc) =>
-                          _sort((p) => p.totalAvailableStock, i, asc),
-                    ),
-                    const DataColumn(
-                        label: Text('Actions')), // <-- New column for button
-                  ],
-                  rows: productController.filteredProducts.map((product) {
-                    return DataRow(
-                      cells: [
-                        _fancyCell(product.productName),
-                        _fancyCell(product.catalogueNumber),
-                        _fancyCell(product.lotNumber),
-                        _fancyCell(product.numberOfHoles),
-                        _fancyCell(product.aklNumber),
-                        _stockCell(product.availableStockInPakistan),
-                        _stockCell(product.availableStockInIndonesia),
-                        _stockCell(product.totalAvailableStock),
-                        DataCell(
-                          TextButton(
-                            onPressed: () async {
-                              await addStockInPakistan(
-                                  productNameUid: product.productNameUid,
-                                  productDetailsUid: product.productDetailsUid,
-                                  existingStockInPakistan:
-                                      product.availableStockInPakistan,
-                                  existingStockInIndonesia:
-                                      product.availableStockInIndonesia,
-                                  productName: product.productName);
-                            },
-                            child: const Text("More"),
+                    child: DataTable(
+                      sortAscending: _isAscending,
+                      sortColumnIndex: _sortColumnIndex,
+                      headingRowHeight: 40,
+                      dataRowHeight: 40,
+                      dataTextStyle: TextStyle(fontWeight: FontWeight.bold),
+                      headingRowColor:
+                          MaterialStateProperty.resolveWith<Color?>((states) {
+                        return Colors.blueGrey; // default heading background
+                      }),
+                      columns: [
+                        const DataColumn(
+                            label: Text(
+                          'Product Name',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )),
+                        const DataColumn(
+                            label: Text(
+                          'Catalogue Number',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )),
+                        const DataColumn(
+                            label: Text(
+                          'Lot Number',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )),
+                        const DataColumn(
+                            label: Text(
+                          'Number of Holes',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )),
+                        const DataColumn(
+                            label: Text(
+                          'AKL Number',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )),
+                        DataColumn(
+                          label: Text(
+                            'Pakistan',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _sortColumnIndex == 5
+                                  ? Colors.red
+                                  : Colors.white,
+                            ),
                           ),
+                          numeric: true,
+                          onSort: (i, asc) =>
+                              _sort((p) => p.availableStockInPakistan, i, asc),
                         ),
+                        DataColumn(
+                          label: Text(
+                            'Indonesia',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _sortColumnIndex == 6
+                                  ? Colors.red
+                                  : Colors.white,
+                            ),
+                          ),
+                          numeric: true,
+                          onSort: (i, asc) =>
+                              _sort((p) => p.availableStockInIndonesia, i, asc),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'Total Stock',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _sortColumnIndex == 7
+                                  ? Colors.red
+                                  : Colors.white,
+                            ),
+                          ),
+                          numeric: true,
+                          onSort: (i, asc) =>
+                              _sort((p) => p.totalAvailableStock, i, asc),
+                        ),
+
+                        const DataColumn(
+                            label: Text(
+                          'Actions',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        )), // <-- New column for button
                       ],
-                    );
-                  }).toList(),
-                ),
-              );
+                      rows: productController.filteredProducts.map((product) {
+                        return DataRow(
+                          cells: [
+                            _fancyCell(product.productName),
+                            _fancyCell(product.catalogueNumber),
+                            _fancyCell(product.lotNumber),
+                            _fancyCell(product.numberOfHoles),
+                            _fancyCell(product.aklNumber),
+                            _stockCell(product.availableStockInPakistan),
+                            _stockCell(product.availableStockInIndonesia),
+                            _stockCell(product.totalAvailableStock),
+                            DataCell(utils.customTextCancelButton(
+                                onPressed: () async {
+                                  await addStockInPakistan(
+                                      productNameUid: product.productNameUid,
+                                      productDetailsUid:
+                                          product.productDetailsUid,
+                                      existingStockInPakistan:
+                                          product.availableStockInPakistan,
+                                      existingStockInIndonesia:
+                                          product.availableStockInIndonesia,
+                                      productName: product.productName);
+                                },
+                                btnName: 'Manage Stock',
+                                textColor: Colors.blue)),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ));
             }),
           ),
         ],
@@ -263,7 +317,10 @@ class _StockPageState extends State<StockPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(productName, style: TextStyle(fontSize: 16,color: Colors.grey[800]),),
+                  Text(
+                    productName,
+                    style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                  ),
                   IconButton(
                     onPressed: () async {
                       Get.back();
@@ -274,30 +331,32 @@ class _StockPageState extends State<StockPage> {
                           existingStockInIndonesia: existingStockInIndonesia,
                           productName: productName);
                     },
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(
+                      Icons.add,
+                      color: Colors.blue,
+                    ),
                   ),
                 ],
               ),
             ],
           ),
-          content:
-
-          Container(
+          content: Container(
             width: 400,
             child: utils.customTextFormField(
-                'Add Stock (Pakistan)', productController.stockInPakistan,
-                keyboardType: TextInputType.number),
+              'Add Stock (Pakistan)',
+              productController.stockInPakistan,
+              keyboardType: TextInputType.number,
+            ),
           ),
           actions: [
-            ElevatedButton(
-                child: const Text('Cancel'),
+            utils.customTextCancelButton(
                 onPressed: () {
                   Get.back();
                   productController.clearFields();
-                }),
-            ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('Save'),
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
                 onPressed: () async {
                   // user input
                   int newPakStock =
@@ -305,16 +364,34 @@ class _StockPageState extends State<StockPage> {
                   int existingPakStock =
                       int.tryParse(existingStockInPakistan) ?? 0;
                   int updatedPakStock = existingPakStock + newPakStock;
+                  int existingIndoStock =
+                      int.tryParse(existingStockInIndonesia) ?? 0;
+                  final totalUpdatedStock = updatedPakStock + existingIndoStock;
+                  if (newPakStock <= 0) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'Stock quantity must be greater than 0',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
                   Get.back();
                   await stockApi.addPakStock(
                       productNameUid: productNameUid,
                       productDetailsUid: productDetailsUid,
                       stockInPakistan: updatedPakStock.toString(),
-                      totalAvailableStock: updatedPakStock.toString());
+                      totalAvailableStock: totalUpdatedStock.toString());
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          '$newPakStock quantity has been added for $productName',
+                      bgColor: Colors.green[200]);
                   // refresh list
                   await productController.fetchProductsDetails();
                   productController.clearFields();
-                }),
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
           ],
         );
       },
@@ -346,8 +423,13 @@ class _StockPageState extends State<StockPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Convert Ready To Deliver Stock'),
-                  SizedBox(height: 5,),
-                  Text(productName, style: TextStyle(fontSize: 16,color: Colors.grey[800]),)
+                  SizedBox(
+                    height: 5,
+                  ),
+                  Text(
+                    productName,
+                    style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                  )
                 ],
               ),
               content: SizedBox(
@@ -376,55 +458,66 @@ class _StockPageState extends State<StockPage> {
                 ),
               ),
               actions: [
-                ElevatedButton(
-                  child: const Text('Close'),
-                  onPressed: () async {
-                    Get.back();
-                    productController.clearFields();
-                  },
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                  onPressed: () async {
-                    final newEnteredStockInIndonesia =
-                        int.tryParse(productController.stockInIndonesia.text) ??
-                            0;
-                    final existingStockPakistan =
-                        int.tryParse(existingStockInPakistan) ?? 0;
+                utils.customTextCancelButton(
+                    onPressed: () async {
+                      Get.back();
+                      productController.clearFields();
+                    },
+                    btnName: 'Close',
+                    textColor: Colors.red),
+                utils.customElevatedFunctionButton(
+                    onPressed: () async {
+                      final newEnteredStockInIndonesia = int.tryParse(
+                              productController.stockInIndonesia.text) ??
+                          0;
+                      final existingStockPakistan =
+                          int.tryParse(existingStockInPakistan) ?? 0;
 
-                    if (newEnteredStockInIndonesia > existingStockPakistan) {
-                      Get.snackbar("Error",
-                          "Quantity exceeds from ready to deliver stock");
-                      return;
-                    }
+                      if (newEnteredStockInIndonesia > existingStockPakistan) {
+                        utils.customSnackBar(
+                            title: 'Error',
+                            message: 'Not enough stock available',
+                            bgColor: Colors.red[200]);
+                        return;
+                      }
+                      if (newEnteredStockInIndonesia <= 0) {
+                        utils.customSnackBar(
+                            title: 'Error',
+                            message: 'Stock quantity must be greater than 0',
+                            bgColor: Colors.red[200]);
+                        return;
+                      }
 
-                    final updatedPakStock =
-                        existingStockPakistan - newEnteredStockInIndonesia;
-                    final newIndStock =
-                        int.tryParse(productController.stockInIndonesia.text) ??
-                            0;
-                    final existingIndStock =
-                        int.tryParse(existingStockInIndonesia) ?? 0;
+                      final updatedPakStock =
+                          existingStockPakistan - newEnteredStockInIndonesia;
+                      final newIndStock = int.tryParse(
+                              productController.stockInIndonesia.text) ??
+                          0;
+                      final existingIndStock =
+                          int.tryParse(existingStockInIndonesia) ?? 0;
 
-                    final updatedIndStock = existingIndStock + newIndStock;
-                    final totalStock = updatedPakStock + updatedIndStock;
-
-                    Get.back();
-
-                    await stockApi.convertPakToIndo(
-                      productNameUid: productNameUid,
-                      productDetailsUid: productDetailsUid,
-                      stockInPakistan: updatedPakStock.toString(),
-                      stockInIndonesia: updatedIndStock.toString(),
-                      totalAvailableStock: totalStock.toString(),
-                    );
-
-                    // refresh list
-                    await productController.fetchProductsDetails();
-                    productController.clearFields();
-                  },
-                ),
+                      final updatedIndStock = existingIndStock + newIndStock;
+                      final totalStock = updatedPakStock + updatedIndStock;
+                      await stockApi.convertPakToIndo(
+                        productNameUid: productNameUid,
+                        productDetailsUid: productDetailsUid,
+                        stockInPakistan: updatedPakStock.toString(),
+                        stockInIndonesia: updatedIndStock.toString(),
+                        totalAvailableStock: totalStock.toString(),
+                      );
+                      Get.back();
+                      utils.customSnackBar(
+                          title: 'Success',
+                          message:
+                              '$newEnteredStockInIndonesia has been successfully delivered from Pakistan to Indonesia for $productName',
+                          bgColor: Colors.green[200]);
+                      // refresh list
+                      await productController.fetchProductsDetails();
+                      productController.clearFields();
+                    },
+                    btnName: 'Save',
+                    bgColor: Colors.green[200],
+                    fgColor: Colors.white)
               ],
             );
           },

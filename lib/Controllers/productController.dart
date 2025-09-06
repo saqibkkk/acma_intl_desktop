@@ -1,14 +1,16 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../APIs/productApi.dart';
 import '../Models/productNamesModel.dart';
 import '../Models/productModel.dart';
+import '../Pages/searchableDropdownMenu.dart';
 import '../utils.dart';
 
 class ProductController extends GetxController {
   final ProductApi api = Get.put(ProductApi());
-  final utils = Utils();
+  final Utils utils = Utils();
   var productsDetails = <ProductDetailsModel>[].obs;
   var productNames = <ProductNamesModel>[].obs;
   var isLoading = true.obs;
@@ -142,38 +144,37 @@ class ProductController extends GetxController {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: ElevatedButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add Product Name'),
-                              onPressed: () async {
-                                await addProductNames();
-                                setState(() {});
-                              }),
-                        ),
+                            padding: const EdgeInsets.all(12.0),
+                            child: utils.customElevatedFunctionButton(
+                                onPressed: () async {
+                                  await addProductNames();
+                                },
+                                btnName: 'Add New Product',
+                                bgColor: Colors.blueGrey,
+                                fgColor: Colors.white)),
                         Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Product Details'),
-                            onPressed: () async {
-                              await addProductDetails();
-                              setState(() {});
-                            },
-                          ),
-                        ),
+                            padding: const EdgeInsets.all(12.0),
+                            child: utils.customElevatedFunctionButton(
+                                onPressed: () async {
+                                  await addProductDetails();
+                                },
+                                btnName: 'Add Product Details',
+                                bgColor: Colors.blueGrey,
+                                fgColor: Colors.white)),
                       ],
                     ),
-                    const SizedBox(height: 12),
-
+                    const SizedBox(height: 10),
                     // Search bar
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Search Products...',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.search),
+                        decoration: InputDecoration(
+                          hintText: 'Search products...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -183,26 +184,30 @@ class ProductController extends GetxController {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     // Products list
                     Expanded(
                       child: GetBuilder<ProductController>(
                         builder: (controller) {
                           if (controller.isLoading.value) {
-                            return const Center(
-                                child: CircularProgressIndicator());
+                            return Center(
+                                child:
+                                    utils.customCircularProgressingIndicator());
                           }
-
                           final productsToShow = controller.productNames
                               .where((p) => p.productName
                                   .toLowerCase()
                                   .contains(searchText.toLowerCase()))
                               .toList();
-
                           if (productsToShow.isEmpty) {
                             return const Center(
-                                child: Text('No Products Found'));
+                                child: Text(
+                              'No Products Found!',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
+                            ));
                           }
 
                           return ListView(
@@ -217,7 +222,11 @@ class ProductController extends GetxController {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(product.productName),
+                                    Text(
+                                      product.productName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
                                     Row(
                                       children: [
                                         IconButton(
@@ -257,7 +266,10 @@ class ProductController extends GetxController {
                                   if (details.isEmpty)
                                     const Padding(
                                       padding: EdgeInsets.all(8.0),
-                                      child: Text('No Details Added'),
+                                      child: Text(
+                                        'No Details Found!',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
                                     )
                                   else
                                     SingleChildScrollView(
@@ -312,8 +324,12 @@ class ProductController extends GetxController {
                                                                   .catalogueNumber,
                                                               lotNumber:
                                                                   d.lotNumber,
-                                                              productName: d
-                                                                  .productName);
+                                                              productName:
+                                                                  d.productName,
+                                                              noOfHoles: d
+                                                                  .numberOfHoles,
+                                                              aklNumber:
+                                                                  d.aklNumber);
                                                           setState(
                                                               () {}); // Refresh table
                                                         },
@@ -337,10 +353,12 @@ class ProductController extends GetxController {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
-                ),
+                utils.customTextCancelButton(
+                    onPressed: () {
+                      Get.back();
+                    },
+                    btnName: 'Close',
+                    textColor: Colors.red),
               ],
             );
           },
@@ -349,8 +367,203 @@ class ProductController extends GetxController {
     );
   }
 
+  Future deleteProductNames(
+      {required String productNameUid, required String productName}) {
+    return showDialog(
+      context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Product'),
+          content: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+                width: 500,
+                child: Text(
+                  'Are you sure?'
+                  '\n\nComplete data of product: $productName will be deleted permanently!',
+                  style: TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
+                )),
+          ),
+          actions: [
+            utils.customTextCancelButton(
+                onPressed: () async {
+                  Get.back();
+                  await api.deleteProduct(productNameUid: productNameUid);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          'All Data $productName has been deleted permanently!',
+                      bgColor: Colors.green[200]);
+                  await fetchProductsNames();
+                  await fetchProductsDetails();
+                },
+                btnName: 'Delete',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () {
+                  Get.back();
+                },
+                btnName: 'Cancel',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
+          ],
+        );
+      },
+    );
+  }
+
+  Future addProductNames() {
+    return showDialog(
+      useSafeArea: true,
+      barrierDismissible: false,
+      context: Get.context!,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add New Product'),
+          content: Container(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                utils.customTextFormField(
+                  'Product Name',
+                  productNameController,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            utils.customTextCancelButton(
+                onPressed: () {
+                  Get.back();
+                  clearFields();
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  String inputName =
+                      productNameController.text.trim().toUpperCase();
+                  if (inputName.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'Product name must not be empty',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+                  bool exists = productNames.any(
+                    (p) => p.productName.toUpperCase() == inputName,
+                  );
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'Product name already available',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+                  Get.back();
+                  await api.saveProductNames(productName: inputName);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message: 'New product - $inputName has been added',
+                      bgColor: Colors.green[200]);
+                  await fetchProductsNames();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white),
+          ],
+        );
+      },
+    );
+  }
+
+  Future editProductNames(
+      {required String currentName, required String productNameUid}) {
+    return showDialog(
+      context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit - $currentName'),
+          content: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              width: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  utils.customTextFormField(
+                    currentName,
+                    newProductName,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            utils.customTextCancelButton(
+                onPressed: () {
+                  Get.back();
+                  clearFields();
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  String inputName = newProductName.text.trim().toUpperCase();
+
+                  // Check if the product already exists
+                  bool exists = productNames
+                      .any((p) => p.productName.toUpperCase() == inputName);
+
+                  if (inputName.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: "Product name cannot be empty",
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: "Error",
+                        message: "Product already available",
+                        bgColor: Colors.red[200]);
+
+                    return;
+                  }
+                  Get.back();
+                  // Save the product name in capital letters
+                  await api.editProductNames(
+                      newProductName: inputName,
+                      productNameUid: productNameUid);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          'Product name $currentName has been changed to $inputName',
+                      bgColor: Colors.green[200]);
+                  // Refresh product names list
+                  await fetchProductsNames();
+                  await fetchProductsDetails();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.red),
+          ],
+        );
+      },
+    );
+  }
+
   Future addProductDetails() {
-    String? selectedProductName; // to store selected product
+    String? selectedProductName;
     String? selectedProductUid;
     String productDetailsUid = utils.generateRealtimeUid();
     return showDialog(
@@ -367,29 +580,19 @@ class ProductController extends GetxController {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Obx(() => DropdownButtonFormField<ProductNamesModel>(
-                        decoration: const InputDecoration(
-                          labelText: 'Product Name',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: selectedProductName != null &&
-                                selectedProductUid != null
-                            ? productNames.firstWhere((p) =>
-                                p.productName == selectedProductName &&
-                                p.productNameUid == selectedProductUid)
-                            : null,
-                        items: productNames
-                            .map((product) =>
-                                DropdownMenuItem<ProductNamesModel>(
-                                  value: product,
-                                  child: Text(product.productName),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          selectedProductName = value!.productName;
-                          selectedProductUid = value.productNameUid;
-                        },
-                      )),
+                  SearchableDropdown<ProductNamesModel>(
+                    label: 'Product Name',
+                    items: productNames,
+                    itemAsString: (p) => p.productName,
+                    selectedItem: selectedProductUid != null
+                        ? productNames.firstWhere(
+                            (p) => p.productNameUid == selectedProductUid)
+                        : null,
+                    onChanged: (value) {
+                      selectedProductName = value?.productName;
+                      selectedProductUid = value?.productNameUid;
+                    },
+                  ),
                   const SizedBox(height: 10),
                   utils.customTextFormField(
                       'Catalogue Number', catalogueNumberController,
@@ -408,68 +611,88 @@ class ProductController extends GetxController {
             ),
           ),
           actions: [
-            ElevatedButton(
-              child: const Text('Cancel'),
-              onPressed: () async {
-                Get.back();
-                clearFields();
-              },
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                if (selectedProductName == null) {
-                  Get.snackbar("Error", "Please select a product name",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
+            utils.customTextCancelButton(
+                onPressed: () {
+                  Get.back();
+                  clearFields();
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  if (selectedProductName == null) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'Please select a product name',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
 
-                String catalogueNumber = catalogueNumberController.text.trim();
-                String lotNumber = lotNumberController.text.trim();
-                String numberOfHoles = holesController.text.trim();
-                String aklNumber = aklNumberController.text.trim();
+                  String catalogueNumber =
+                      catalogueNumberController.text.trim();
+                  String lotNumber = lotNumberController.text.trim();
+                  String numberOfHoles = holesController.text.trim();
+                  String aklNumber = aklNumberController.text.trim();
 
-                // Check if the same product detail already exists
-                bool exists = productsDetails.any((d) =>
-                    d.productName == selectedProductName &&
-                    d.catalogueNumber == catalogueNumber &&
-                    d.lotNumber == lotNumber &&
-                    d.numberOfHoles == numberOfHoles &&
-                    d.aklNumber == aklNumber);
+                  if (catalogueNumber.isEmpty ||
+                      lotNumber.isEmpty ||
+                      numberOfHoles.isEmpty ||
+                      aklNumber.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'All fields are required',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+                  // Check if the same product detail already exists
+                  bool exists = productsDetails.any((d) =>
+                      d.productName == selectedProductName &&
+                      d.catalogueNumber == catalogueNumber &&
+                      d.lotNumber == lotNumber &&
+                      d.numberOfHoles == numberOfHoles &&
+                      d.aklNumber == aklNumber);
 
-                if (exists) {
-                  Get.snackbar("Error",
-                      "These details are already added for this product",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message:
+                            'Entered details are already added for this product',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
 
-                Get.back();
+                  Get.back();
 
-                ProductDetailsModel product = ProductDetailsModel(
-                    productName: selectedProductName!,
-                    catalogueNumber: catalogueNumber,
-                    lotNumber: lotNumber,
-                    numberOfHoles: numberOfHoles,
-                    aklNumber: aklNumber,
-                    availableStockInPakistan: '0',
-                    availableStockInIndonesia: '0',
-                    totalAvailableStock: '0',
-                    productDetailsUid: productDetailsUid,
-                    productNameUid: selectedProductUid!);
+                  ProductDetailsModel product = ProductDetailsModel(
+                      productName: selectedProductName!,
+                      catalogueNumber: catalogueNumber,
+                      lotNumber: lotNumber,
+                      numberOfHoles: numberOfHoles,
+                      aklNumber: aklNumber,
+                      availableStockInPakistan: '0',
+                      availableStockInIndonesia: '0',
+                      totalAvailableStock: '0',
+                      productDetailsUid: productDetailsUid,
+                      productNameUid: selectedProductUid!);
 
-                // Save in database
-                await api.saveProductDetails(
-                    product: product,
-                    productNameUid: selectedProductUid,
-                    productDetailsUid: productDetailsUid);
-                // // Update the observable list
-                productsDetails.add(product);
-                await fetchProductsDetails();
-                clearFields();
-              },
-            ),
+                  // Save in database
+                  await api.saveProductDetails(
+                      product: product,
+                      productNameUid: selectedProductUid,
+                      productDetailsUid: productDetailsUid);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          'New details of the product $selectedProductName has been added',
+                      bgColor: Colors.green[200]);
+                  // // Update the observable list
+                  productsDetails.add(product);
+                  await fetchProductsDetails();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
           ],
         );
       },
@@ -531,227 +754,69 @@ class ProductController extends GetxController {
             ),
           ),
           actions: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                final newCat = newCatalogueNumberController.text.trim();
-                final newLot = newLotNumberController.text.trim();
-                final newHoles = newHolesController.text.trim();
-                final newAKL = newAklNumberController.text.trim();
-
-                // Check for duplicate details (excluding current editing node)
-                bool exists = productsDetails.any((d) =>
-                    d.catalogueNumber == newCat &&
-                    d.lotNumber == newLot &&
-                    d.numberOfHoles == newHoles &&
-                    d.aklNumber == newAKL);
-
-                if (exists) {
-                  Get.snackbar(
-                    'Error',
-                    'These details already exist for this product',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                  return;
-                }
-                Get.back();
-                // Update the correct node in Firebase using REST API
-                await api.editProductDetails(
-                  detailUid: detail.productDetailsUid,
-                  productUid: detail.productNameUid,
-                  newCatNumber: newCat,
-                  newLotNumber: newLot,
-                  newHolesNumber: newHoles,
-                  newAKLNumber: newAKL,
-                );
-
-                // Refresh local lists
-                await fetchProductsNames();
-                await fetchProductsDetails();
-                clearFields();
-              },
-            ),
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('Cancel'),
-            )
-          ],
-        );
-      },
-    );
-  }
-
-
-
-
-
-  Future deleteProductNames(
-      {required String productNameUid, required String productName}) {
-    return showDialog(
-      context: Get.context!,
-      useSafeArea: true,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Product'),
-          content: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Container(
-                width: 500,
-                child: Text(
-                    'Are you sure?\nAll Data of product: $productName will be deleted permanently!')),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () async {
-                  // Close the add product dialog
-                  Get.back();
-                  await api.deleteProduct(productNameUid: productNameUid);
-                  await fetchProductsNames();
-                  await fetchProductsDetails();
-                },
-                child: Text('Delete')),
-            const SizedBox(height: 10),
-            ElevatedButton(
+            utils.customTextCancelButton(
                 onPressed: () {
                   Get.back();
+                  clearFields();
                 },
-                child: Text('Cancel'))
-          ],
-        );
-      },
-    );
-  }
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  final newCat = newCatalogueNumberController.text.trim();
+                  final newLot = newLotNumberController.text.trim();
+                  final newHoles = newHolesController.text.trim();
+                  final newAKL = newAklNumberController.text.trim();
 
-  Future addProductNames() {
-    return showDialog(
-      useSafeArea: true,
-      barrierDismissible: false,
-      context: Get.context!,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Add New Product'),
-          content: Container(
-            width: 500,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                utils.customTextFormField(
-                  'Product Name',
-                  productNameController,
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              child: const Text('Cancel'),
-              onPressed: () async {
-                Get.back();
-                clearFields();
-              },
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                String inputName =
-                    productNameController.text.trim().toUpperCase();
+                  if (newCat.isEmpty ||
+                      newLot.isEmpty ||
+                      newHoles.isEmpty ||
+                      newAKL.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'All fields are required',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
 
-                if (inputName.isEmpty) {
-                  Get.snackbar("Error", "Product name cannot be empty",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
+                  // Check for duplicate details (excluding current editing node)
+                  bool exists = productsDetails.any((d) =>
+                      d.catalogueNumber == newCat &&
+                      d.lotNumber == newLot &&
+                      d.numberOfHoles == newHoles &&
+                      d.aklNumber == newAKL);
 
-                bool exists = productNames.any(
-                  (p) => p.productName.toUpperCase() == inputName,
-                );
-
-                if (exists) {
-                  Get.snackbar("Error", "Product already available",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
-                Get.back();
-                await api.saveProductNames(productName: inputName);
-                await fetchProductsNames();
-                clearFields();
-              },
-            )
-          ],
-        );
-      },
-    );
-  }
-
-  Future editProductNames(
-      {required String currentName, required String productNameUid}) {
-    return showDialog(
-      context: Get.context!,
-      useSafeArea: true,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit $currentName'),
-          content: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Container(
-              width: 500,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  utils.customTextFormField(
-                    currentName,
-                    newProductName,
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              child: const Text('Cancel'),
-              onPressed: () async {
-                Get.back();
-                clearFields();
-              },
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                String inputName = newProductName.text.trim().toUpperCase();
-
-                // Check if the product already exists
-                bool exists = productNames
-                    .any((p) => p.productName.toUpperCase() == inputName);
-
-                if (inputName.isEmpty) {
-                  Get.snackbar("Error", "Product name cannot be empty",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
-
-                if (exists) {
-                  Get.snackbar("Error", "Product already available",
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
-                Get.back();
-                // Save the product name in capital letters
-                await api.editProductNames(
-                    newProductName: inputName, productNameUid: productNameUid);
-
-                // Refresh product names list
-                await fetchProductsNames();
-                await fetchProductsDetails();
-                clearFields();
-              },
-            ),
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message:
+                            'Entered details already exist for this product',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+                  Get.back();
+                  // Update the correct node in Firebase using REST API
+                  await api.editProductDetails(
+                    detailUid: detail.productDetailsUid,
+                    productUid: detail.productNameUid,
+                    newCatNumber: newCat,
+                    newLotNumber: newLot,
+                    newHolesNumber: newHoles,
+                    newAKLNumber: newAKL,
+                  );
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          'Details of the product ${detail.productName} has been edited',
+                      bgColor: Colors.green[200]);
+                  // Refresh local lists
+                  await fetchProductsNames();
+                  await fetchProductsDetails();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white),
           ],
         );
       },
@@ -763,6 +828,8 @@ class ProductController extends GetxController {
       required String productUid,
       required String catalogueNumber,
       required String lotNumber,
+      required String noOfHoles,
+      required String aklNumber,
       required String productName}) {
     return showDialog(
       context: Get.context!,
@@ -772,29 +839,37 @@ class ProductController extends GetxController {
         return AlertDialog(
           title: const Text('Delete Product Detail'),
           content: Text(
-              'Are you sure?\nCatalogue Number: $catalogueNumber\nLot Number: $lotNumber\nof Product: $productName will be permanently deleted!'),
+            'Are you sure?'
+            '\n\nCatalogue Number: $catalogueNumber,'
+            '\nLot Number: $lotNumber,'
+            '\nNumber of Holes: $noOfHoles and'
+            '\nAKL Number: $aklNumber,'
+            '\nof Product: $productName will be permanently deleted!',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           actions: [
-            ElevatedButton(
+            utils.customTextCancelButton(
+                onPressed: () async {
+                  Get.back();
+                  await api.deleteProductDetails(
+                      productUid: productUid, uid: uid);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message:
+                          'Product details of the product: $productName has been deleted permanently',
+                      bgColor: Colors.green[200]);
+                  await fetchProductsNames();
+                  await fetchProductsDetails();
+                },
+                btnName: 'Delete',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
                 onPressed: () {
                   Get.back();
                 },
-                child: Text('Cancel')),
-            Container(
-              width: 500,
-              child: Row(
-                children: [
-                  TextButton(
-                      onPressed: () async {
-                        Get.back();
-                        await api.deleteProductDetails(
-                            productUid: productUid, uid: uid);
-                        await fetchProductsNames();
-                        await fetchProductsDetails();
-                      },
-                      child: Text('Delete')),
-                ],
-              ),
-            ),
+                btnName: 'Cancel',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
           ],
         );
       },

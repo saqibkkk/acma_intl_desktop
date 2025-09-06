@@ -10,7 +10,7 @@ import '../Models/billModel.dart';
 import '../Models/productModel.dart';
 
 class CustomerController extends GetxController {
-  final utils = Utils();
+  final Utils utils = Utils();
   final CustomerApi api = Get.put(CustomerApi());
   final ProductApi productApi = Get.put(ProductApi());
   final productController = Get.put(ProductController());
@@ -98,73 +98,85 @@ class CustomerController extends GetxController {
     String customerUid = utils.generateRealtimeUid();
     return showDialog(
       context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Add New Customer'),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Container(
-                width: 500,
-                child: Column(
-                  children: [
-                    utils.customTextFormField('Customer Name', customerName,
-                        keyboardType: TextInputType.text),
-                    const SizedBox(height: 10),
-                    utils.customTextFormField(
-                        'Customer Contact', customerContact,
-                        keyboardType: TextInputType.number),
-                    const SizedBox(height: 10),
-                    utils.customTextFormField(
-                      'Customer Address',
-                      customerAddress,
-                    ),
-                    const SizedBox(height: 30),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save'),
-                      onPressed: () async {
-                        String name = customerName.text.trim().toUpperCase();
-                        String contact =
-                            customerContact.text.trim().toUpperCase();
-                        String address =
-                            customerAddress.text.trim().toUpperCase();
-
-                        if (name.isEmpty &&
-                            contact.isEmpty &&
-                            address.isEmpty) {
-                          Get.snackbar("Error", "All fields are required",
-                              snackPosition: SnackPosition.BOTTOM);
-                          return;
-                        }
-
-                        // bool exists = productNames.any(
-                        //       (p) => p.productName.toUpperCase() == inputName,
-                        // );
-
-                        // if (exists) {
-                        //   Get.snackbar("Error", "Product already available",
-                        //       snackPosition: SnackPosition.BOTTOM);
-                        //   return;
-                        // }
-
-                        final customer = CustomerModel(
-                            customerName: name,
-                            customerContactNumber: contact,
-                            customerAddress: address,
-                            customerUid: customerUid);
-
-                        Get.back();
-                        await api.saveCustomers(
-                            customer: customer, customerUid: customerUid);
-                        await fetchCustomers();
-                        clearFields();
-                      },
-                    )
-                  ],
-                ),
+          content: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              width: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  utils.customTextFormField('Name', customerName,
+                      keyboardType: TextInputType.text),
+                  const SizedBox(height: 10),
+                  utils.customTextFormField('Contact', customerContact,
+                      keyboardType: TextInputType.number),
+                  const SizedBox(height: 10),
+                  utils.customTextFormField(
+                    'Address',
+                    customerAddress,
+                  ),
+                ],
               ),
             ),
+          ),
+          actions: [
+            utils.customTextCancelButton(
+                onPressed: () {
+                  Get.back();
+                  clearFields();
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  String name = customerName.text.trim().toUpperCase();
+                  String contact = customerContact.text.trim().toUpperCase();
+                  String address = customerAddress.text.trim().toUpperCase();
+
+                  if (name.isEmpty || contact.isEmpty || address.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'All fields are required',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+
+                  bool exists = customer.any(
+                    (c) => c.customerName.toUpperCase() == name,
+                  );
+
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'Customer already exists',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+
+                  final customerModel = CustomerModel(
+                      customerName: name,
+                      customerContactNumber: contact,
+                      customerAddress: address,
+                      customerUid: customerUid);
+
+                  Get.back();
+                  await api.saveCustomers(
+                      customer: customerModel, customerUid: customerUid);
+                  utils.customSnackBar(
+                      title: 'Error',
+                      message: 'New customer: $name has been added',
+                      bgColor: Colors.green[200]);
+                  await fetchCustomers();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
           ],
         );
       },
@@ -179,9 +191,11 @@ class CustomerController extends GetxController {
 
     return showDialog(
       context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Edit Customer'),
+          title: Text('Edit Customer - ${customers.customerName}'),
           content: SizedBox(
             width: 500,
             child: Column(
@@ -190,7 +204,6 @@ class CustomerController extends GetxController {
                 utils.customTextFormField(
                   'Customer Name',
                   newCustomerName,
-                  keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 10),
                 utils.customTextFormField(
@@ -202,90 +215,109 @@ class CustomerController extends GetxController {
                 utils.customTextFormField(
                   'Customer Address',
                   newCustomerAddress,
-                  keyboardType: TextInputType.number,
                 ),
               ],
             ),
           ),
           actions: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                final newName = newCustomerName.text.trim().toUpperCase();
-                ;
-                final newContact = newCustomerContact.text.trim().toUpperCase();
-                ;
-                final newAddress = newCustomerContact.text.trim().toUpperCase();
-                ;
+            utils.customTextCancelButton(
+                onPressed: () {
+                  Get.back();
+                  clearFields();
+                },
+                btnName: 'Cancel',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () async {
+                  final newName = newCustomerName.text.trim().toUpperCase();
+                  final newContact =
+                      newCustomerContact.text.trim().toUpperCase();
+                  final newAddress =
+                      newCustomerAddress.text.trim().toUpperCase();
 
-                // Check for duplicate details (excluding current editing node)
-                bool exists = customer.any((d) =>
-                    d.customerName == newName &&
-                    d.customerContactNumber == newContact &&
-                    d.customerAddress == newAddress);
+                  if (newName.isEmpty ||
+                      newContact.isEmpty ||
+                      newAddress.isEmpty) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message: 'All fields are required',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
 
-                if (exists) {
-                  Get.snackbar(
-                    'Error',
-                    'These details already exist for this customer',
-                    snackPosition: SnackPosition.BOTTOM,
-                  );
-                  return;
-                }
-                Get.back();
+                  bool exists = customer.any((d) =>
+                      d.customerName == newName &&
+                      d.customerContactNumber == newContact &&
+                      d.customerAddress == newAddress);
 
-                await api.editCustomer(
-                    customerUid: customers.customerUid,
-                    newCustomerName: newName,
-                    newCustomerContact: newContact,
-                    newCustomerAddress: newAddress);
+                  if (exists) {
+                    utils.customSnackBar(
+                        title: 'Error',
+                        message:
+                            'These details already exist for this customer',
+                        bgColor: Colors.red[200]);
+                    return;
+                  }
+                  Get.back();
 
-                await fetchCustomers();
-                clearFields();
-              },
-            ),
-            TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('Cancel'),
-            )
+                  await api.editCustomer(
+                      customerUid: customers.customerUid,
+                      newCustomerName: newName,
+                      newCustomerContact: newContact,
+                      newCustomerAddress: newAddress);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message: 'Customer details have been edited',
+                      bgColor: Colors.green[200]);
+                  await fetchCustomers();
+                  clearFields();
+                },
+                btnName: 'Save',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white),
           ],
         );
       },
     );
   }
 
-  Future deleteCustomer({required String customerUid}) {
+  Future deleteCustomer(
+      {required String customerUid, required String customerName}) {
     return showDialog(
       context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete Customer'),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Container(
-                width: 500,
-                child: Row(
-                  children: [
-                    TextButton(
-                        onPressed: () async {
-                          // Close the add product dialog
-                          Get.back();
-                          await api.deleteCustomer(customerUid: customerUid);
-                          await fetchCustomers();
-                        },
-                        child: Text('Delete')),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                        onPressed: () {
-                          Get.back();
-                        },
-                        child: Text('Cancel'))
-                  ],
-                ),
-              ),
+          content: Container(
+            width: 500,
+            child: Text(
+              'Are you sure?'
+              '\n\nAll details of $customerName will be deleted permanently!',
+              style: TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
             ),
+          ),
+          actions: [
+            utils.customTextCancelButton(
+                onPressed: () async {
+                  Get.back();
+                  await api.deleteCustomer(customerUid: customerUid);
+                  utils.customSnackBar(
+                      title: 'Success',
+                      message: 'All details of $customerName have been deleted',
+                      bgColor: Colors.green[200]);
+                  await fetchCustomers();
+                },
+                btnName: 'Delete',
+                textColor: Colors.red),
+            utils.customElevatedFunctionButton(
+                onPressed: () {
+                  Get.back();
+                },
+                btnName: 'Cancel',
+                bgColor: Colors.green[200],
+                fgColor: Colors.white)
           ],
         );
       },
@@ -296,6 +328,7 @@ class CustomerController extends GetxController {
       {required String customerUid, required String customerName}) {
     return showDialog(
       useSafeArea: true,
+      barrierDismissible: false,
       context: Get.context!,
       builder: (BuildContext context) {
         String searchText = '';
@@ -306,18 +339,20 @@ class CustomerController extends GetxController {
             return AlertDialog(
               title: const Text('Select Products'),
               content: Container(
-                width: 1000,
-                height: 800,
+                width: 900,
                 child: Column(
                   children: [
                     // Search bar
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Search Products...',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.search),
+                        decoration: InputDecoration(
+                          hintText: 'Search Products...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -333,8 +368,7 @@ class CustomerController extends GetxController {
                       child: GetBuilder<ProductController>(
                         builder: (controller) {
                           if (controller.isLoading.value) {
-                            return const Center(
-                                child: CircularProgressIndicator());
+                            return utils.customCircularProgressingIndicator();
                           }
 
                           final productsToShow = controller.productNames
@@ -345,7 +379,12 @@ class CustomerController extends GetxController {
 
                           if (productsToShow.isEmpty) {
                             return const Center(
-                                child: Text('No Products Found'));
+                                child: Text(
+                              'No Products Found!',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
+                            ));
                           }
 
                           return ListView(
@@ -360,12 +399,18 @@ class CustomerController extends GetxController {
                                   product.productName, () => {});
 
                               return ExpansionTile(
-                                title: Text(product.productName),
+                                title: Text(
+                                  product.productName,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                                 children: [
                                   if (details.isEmpty)
                                     const Padding(
                                       padding: EdgeInsets.all(8.0),
-                                      child: Text('No Details Available'),
+                                      child: Text(
+                                        'No Details Found!',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
                                     )
                                   else
                                     SingleChildScrollView(
@@ -430,55 +475,63 @@ class CustomerController extends GetxController {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: const Text('Close'),
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.save),
-                  label: const Text('Proceed'),
-                  onPressed: () {
-                    // Collect selected products
-                    List<Map<String, dynamic>> selectedProducts = [];
+                utils.customTextCancelButton(
+                    onPressed: () {
+                      Get.back();
+                    },
+                    btnName: 'Cancel',
+                    textColor: Colors.red),
+                utils.customElevatedFunctionButton(
+                    onPressed: () async {
+                      List<Map<String, dynamic>> selectedProducts = [];
 
-                    selectedDetailsPerProduct
-                        .forEach((productName, detailsMap) {
-                      detailsMap.forEach((detailId, isSelected) {
-                        if (isSelected) {
-                          // Find the actual detail object
-                          final detail = Get.find<ProductController>()
-                              .productsDetails
-                              .firstWhere((d) =>
-                                  d.productName == productName &&
-                                  d.catalogueNumber + d.lotNumber == detailId);
+                      selectedDetailsPerProduct
+                          .forEach((productName, detailsMap) {
+                        detailsMap.forEach((detailId, isSelected) {
+                          if (isSelected) {
+                            final detail = Get.find<ProductController>()
+                                .productsDetails
+                                .firstWhere((d) =>
+                                    d.productName == productName &&
+                                    d.catalogueNumber + d.lotNumber ==
+                                        detailId);
 
-                          selectedProducts.add({
-                            "productUid": detail.productNameUid,
-                            "detailsUid": detail.productDetailsUid,
-                            "name": detail.productName,
-                            "quantity": TextEditingController(),
-                            "price": TextEditingController(),
-                            "catalogueNumber": detail.catalogueNumber,
-                            "lotNumber": detail.lotNumber,
-                            "holes": detail.numberOfHoles,
-                            "aklNumber": detail.aklNumber,
-                            "availableQuantityInPakistan":
-                                detail.availableStockInPakistan,
-                            "availableQuantityInIndonesia":
-                                detail.availableStockInIndonesia,
-                            "totalStock": detail.totalAvailableStock
-                          });
-                        }
+                            selectedProducts.add({
+                              "productUid": detail.productNameUid,
+                              "detailsUid": detail.productDetailsUid,
+                              "name": detail.productName,
+                              "quantity": TextEditingController(),
+                              "price": TextEditingController(),
+                              "catalogueNumber": detail.catalogueNumber,
+                              "lotNumber": detail.lotNumber,
+                              "holes": detail.numberOfHoles,
+                              "aklNumber": detail.aklNumber,
+                              "availableQuantityInPakistan":
+                                  detail.availableStockInPakistan,
+                              "availableQuantityInIndonesia":
+                                  detail.availableStockInIndonesia,
+                              "totalStock": detail.totalAvailableStock
+                            });
+                          }
+                        });
                       });
-                    });
-
-                    Get.back();
-                    generateBill(
-                        customerUid: customerUid,
-                        selectedProducts: selectedProducts,
-                        customerName: customerName); // pass selected products
-                  },
-                ),
+                      if (selectedProducts.isEmpty) {
+                        utils.customSnackBar(
+                            title: 'Error',
+                            message:
+                                'Please select atleast one product to proceed',
+                            bgColor: Colors.red[200]);
+                        return;
+                      }
+                      Get.back();
+                      await generateBill(
+                          customerUid: customerUid,
+                          selectedProducts: selectedProducts,
+                          customerName: customerName); // pass selected products
+                    },
+                    btnName: 'Proceed ->>',
+                    bgColor: Colors.green[200],
+                    fgColor: Colors.white)
               ],
             );
           },
@@ -495,6 +548,8 @@ class CustomerController extends GetxController {
   }) {
     return showDialog(
       context: Get.context!,
+      useSafeArea: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
@@ -566,7 +621,7 @@ class CustomerController extends GetxController {
                               ),
                               // Quantity field
                               Expanded(
-                                flex: 2,
+                                flex: 1,
                                 child: utils.customTextFormField(
                                     'Quantity', product["quantity"],
                                     keyboardType: TextInputType.number,
@@ -583,7 +638,7 @@ class CustomerController extends GetxController {
 
                               // Price field
                               Expanded(
-                                flex: 2,
+                                flex: 1,
                                 child: utils.customTextFormField(
                                   'Price',
                                   product["price"],
@@ -598,138 +653,157 @@ class CustomerController extends GetxController {
                   ),
                 ),
                 actions: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: const Text("Cancel"),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: const Text('Save Bill'),
-                    onPressed: () async {
-                      try {
-                        isSavingBill.value = true;
-                        update();
-                        // Validate quantities and prices before saving
-                        for (var product in selectedProducts) {
-                          final qty =
-                              int.tryParse(product["quantity"]?.text ?? '0') ??
-                                  0;
-                          final price =
-                              double.tryParse(product["price"]?.text ?? '0') ??
-                                  0;
-                          final availableQty = int.tryParse(
-                                  product['availableQuantityInIndonesia']
-                                          ?.toString() ??
-                                      '0') ??
-                              0;
+                  utils.customTextCancelButton(
+                      onPressed: () {
+                        Get.back();
+                        clearFields();
+                      },
+                      btnName: 'Cancel',
+                      textColor: Colors.red),
+                  utils.customElevatedFunctionButton(
+                      onPressed: () async {
+                        try {
+                          isSavingBill.value = true;
+                          update();
+                          // Validate quantities and prices before saving
+                          for (var product in selectedProducts) {
+                            final qty = int.tryParse(
+                                    product["quantity"]?.text ?? '0') ??
+                                0;
+                            final price = double.tryParse(
+                                    product["price"]?.text ?? '0') ??
+                                0;
+                            final availableQty = int.tryParse(
+                                    product['availableQuantityInIndonesia']
+                                            ?.toString() ??
+                                        '0') ??
+                                0;
 
-                          if (qty <= 0) {
-                            Get.snackbar("Error",
-                                "Quantity for ${product['name']} must be greater than 0");
-                            return;
+                            if (qty <= 0) {
+                              utils.customSnackBar(
+                                  title: 'Error',
+                                  message:
+                                      'Quantity for ${product['name']} must be greater than 0',
+                                  bgColor: Colors.red[200]);
+                              return;
+                            }
+
+                            if (price <= 0) {
+                              utils.customSnackBar(
+                                  title: 'Error',
+                                  message:
+                                      'Price for ${product['name']} must be greater than 0',
+                                  bgColor: Colors.red[200]);
+                              return;
+                            }
+
+                            if (qty > availableQty) {
+                              utils.customSnackBar(
+                                  title: 'Error',
+                                  message:
+                                      'Quantity for ${product['name']} exceeds available stock',
+                                  bgColor: Colors.red[200]);
+                              return;
+                            }
                           }
 
-                          if (price <= 0) {
-                            Get.snackbar("Error",
-                                "Price for ${product['name']} must be greater than 0");
-                            return;
-                          }
+                          // Map selected products to BillItemModel
+                          final billItems = selectedProducts.map((product) {
+                            int quantity = int.tryParse(
+                                    product["quantity"]?.text ?? '0') ??
+                                0;
+                            double price = double.tryParse(
+                                    product["price"]?.text ?? '0') ??
+                                0;
+                            double total = quantity * price;
 
-                          if (qty > availableQty) {
-                            Get.snackbar("Error",
-                                "Quantity for ${product['name']} exceeds available stock");
-                            return;
-                          }
-                        }
-
-                        // Map selected products to BillItemModel
-                        final billItems = selectedProducts.map((product) {
-                          int quantity =
-                              int.tryParse(product["quantity"]?.text ?? '0') ??
-                                  0;
-                          double price =
-                              double.tryParse(product["price"]?.text ?? '0') ??
-                                  0;
-                          double total = quantity * price;
-
-                          return BillItemModel(
-                            productUid: product["uid"]?.toString() ?? '',
-                            productName: product["name"]?.toString() ?? '',
-                            catalogueNumber:
-                                product["catalogueNumber"]?.toString() ?? '',
-                            lotNumber: product["lotNumber"]?.toString() ?? '',
-                            numberOfHoles: product["holes"]?.toString() ?? '',
-                            aklNumber: product["aklNumber"]?.toString() ?? '',
-                            quantity: quantity,
-                            price: price,
-                            total: total,
-                          );
-                        }).toList();
-
-                        // Calculate total bill
-                        final totalBill = billItems.fold<double>(
-                            0, (sum, item) => sum + item.total);
-
-                        final bill = BillModel(
-                          billId:
-                              DateTime.now().millisecondsSinceEpoch.toString(),
-                          createdAt: DateTime.now(),
-                          totalBill: totalBill,
-                          items: billItems,
-                        );
-
-                        // Save bill in database
-                        await api.saveBill(
-                          bill: bill,
-                          customerUid: customerUid,
-                          billUid: bill.billId,
-                        );
-
-                        // Update stock for each product
-                        for (var product in selectedProducts) {
-                          final qty =
-                              int.tryParse(product["quantity"]?.text ?? '0') ??
-                                  0;
-                          final availableQty = int.tryParse(
-                                  product['availableQuantityInIndonesia']
-                                          ?.toString() ??
-                                      '0') ??
-                              0;
-                          final totalStock = int.tryParse(
-                                  product['totalStock']?.toString() ?? '0') ??
-                              0;
-                          final updatedStock = availableQty - qty;
-                          final totalAvailableStock = totalStock - qty;
-
-                          final detailUid =
-                              product['detailsUid']?.toString() ?? '';
-                          final productUid =
-                              product['productUid']?.toString() ?? '';
-                          final updatedStockString = updatedStock.toString();
-                          final totalAvailableStockString =
-                              totalAvailableStock.toString();
-
-                          if (detailUid.isNotEmpty && productUid.isNotEmpty) {
-                            await productApi.updateStockOnBill(
-                              detailUid: detailUid,
-                              productUid: productUid,
-                              updatedStockOnSale: updatedStockString,
-                              totalStock: totalAvailableStockString,
+                            return BillItemModel(
+                              productUid: product["productUid"]?.toString() ?? '',
+                              productName: product["name"]?.toString() ?? '',
+                              catalogueNumber:
+                                  product["catalogueNumber"]?.toString() ?? '',
+                              lotNumber: product["lotNumber"]?.toString() ?? '',
+                              numberOfHoles: product["holes"]?.toString() ?? '',
+                              aklNumber: product["aklNumber"]?.toString() ?? '',
+                              quantity: quantity,
+                              price: price,
+                              total: total,
                             );
-                          }
-                        }
+                          }).toList();
 
-                        Get.back(); // close dialog
-                        Get.snackbar('Success',
-                            'Bill to $customerName, Total Amount of $totalBill saved successfully!');
-                      } catch (e) {
-                        Get.snackbar('Error', e.toString());
-                      } finally {
-                        isSavingBill.value = false;
-                        update();
-                      }
-                    },
-                  )
+                          // Calculate total bill
+                          final totalBill = billItems.fold<double>(
+                              0, (sum, item) => sum + item.total);
+
+                          final bill = BillModel(
+                            billId: DateTime.now()
+                                .millisecondsSinceEpoch
+                                .toString(),
+                            createdAt: DateTime.now(),
+                            totalBill: totalBill,
+                            items: billItems,
+                          );
+
+                          // Save bill in database
+                          await api.saveBill(
+                            bill: bill,
+                            customerUid: customerUid,
+                            billUid: bill.billId,
+                          );
+
+                          // Update stock for each product
+                          for (var product in selectedProducts) {
+                            final qty = int.tryParse(
+                                    product["quantity"]?.text ?? '0') ??
+                                0;
+                            final availableQty = int.tryParse(
+                                    product['availableQuantityInIndonesia']
+                                            ?.toString() ??
+                                        '0') ??
+                                0;
+                            final totalStock = int.tryParse(
+                                    product['totalStock']?.toString() ?? '0') ??
+                                0;
+                            final updatedStock = availableQty - qty;
+                            final totalAvailableStock = totalStock - qty;
+
+                            final detailUid =
+                                product['detailsUid']?.toString() ?? '';
+                            final productUid =
+                                product['productUid']?.toString() ?? '';
+                            final updatedStockString = updatedStock.toString();
+                            final totalAvailableStockString =
+                                totalAvailableStock.toString();
+
+                            if (detailUid.isNotEmpty && productUid.isNotEmpty) {
+                              await productApi.updateStockOnBill(
+                                detailUid: detailUid,
+                                productUid: productUid,
+                                updatedStockOnSale: updatedStockString,
+                                totalStock: totalAvailableStockString,
+                              );
+                            }
+                          }
+
+                          Get.back();
+                          utils.customSnackBar(
+                              title: 'Success',
+                              message:
+                                  'Bill to $customerName, Total Amount of $totalBill saved successfully!',
+                              bgColor: Colors.green[200]);
+                        } catch (e) {
+                          utils.customSnackBar(
+                              title: 'Error',
+                              message: e.toString(),
+                              bgColor: Colors.red[200]);
+                        } finally {
+                          isSavingBill.value = false;
+                          update();
+                        }
+                      },
+                      btnName: 'Save Bill',
+                      bgColor: Colors.green[200],
+                      fgColor: Colors.white)
                 ],
               );
             });
