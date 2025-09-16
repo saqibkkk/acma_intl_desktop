@@ -95,7 +95,10 @@ class ProductController extends GetxController {
 
       productsDetails.value = await api.fetchProductsDetails();
     } catch (e) {
-      Get.snackbar("Error", e.toString());
+      utils.customSnackBar(
+          title: "Error",
+          message: 'An unknown error occurred!',
+          bgColor: Colors.red[200]);
       print(e.toString());
     } finally {
       isLoading.value = false;
@@ -116,7 +119,10 @@ class ProductController extends GetxController {
         );
       }).toList();
     } catch (e) {
-      Get.snackbar("Error", e.toString());
+      utils.customSnackBar(
+          title: "Error",
+          message: 'An unknown error occurred!',
+          bgColor: Colors.red[200]);
     } finally {
       isLoading.value = false;
       update();
@@ -229,6 +235,19 @@ class ProductController extends GetxController {
                                     ),
                                     Row(
                                       children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.upload_file,
+                                              color: Colors.blue, size: 20),
+                                          onPressed: () async {
+                                            await api.importProductsFromExcel(
+                                                productNameUid:
+                                                    product.productNameUid,
+                                                productName:
+                                                    product.productName);
+                                            setState(() {});
+                                            // Call edit product name function
+                                          },
+                                        ),
                                         IconButton(
                                           icon: const Icon(Icons.edit,
                                               color: Colors.green, size: 20),

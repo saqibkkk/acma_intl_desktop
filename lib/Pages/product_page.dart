@@ -1,3 +1,4 @@
+import 'package:acma_intl_desktop/Pages/splashScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -6,27 +7,44 @@ import '../Models/productModel.dart';
 import '../APIs/productApi.dart';
 import '../utils.dart';
 
-class StockPage extends StatefulWidget {
-  const StockPage({super.key});
+class ProductsPage extends StatefulWidget {
+  const ProductsPage({super.key});
 
   @override
-  State<StockPage> createState() => _StockPageState();
+  State<ProductsPage> createState() => _ProductsPageState();
 }
 
-class _StockPageState extends State<StockPage> {
+class _ProductsPageState extends State<ProductsPage> {
   final productController = Get.put(ProductController());
   final stockApi = Get.put(ProductApi());
   final Utils utils = Utils();
   final TextEditingController searchController = TextEditingController();
-
+  bool internetAvailable = true;
   int? _sortColumnIndex;
   bool _isAscending = true;
 
   @override
   void initState() {
     super.initState();
-    productController.fetchProductsDetails();
-    productController.fetchProductsNames();
+    _checkInternet();
+  }
+
+  Future<void> _checkInternet() async {
+    internetAvailable = await Utils.isInternetAvailable();
+    if (!internetAvailable) {
+      _showNoInternetSnack();
+    } else {
+      await productController.fetchProductsDetails();
+      await productController.fetchProductsNames();
+    }
+    setState(() {});
+  }
+
+  void _showNoInternetSnack() {
+    utils.customSnackBar(
+        title: 'No Internet',
+        message: 'Internet connection is not available.',
+        bgColor: Colors.red[200]);
   }
 
   void _sort<T>(
@@ -62,29 +80,24 @@ class _StockPageState extends State<StockPage> {
     return Scaffold(
       body: Column(
         children: [
-          // Gradient Header with Animated Text
           utils.customPageHeader(),
-
           Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
+            alignment: Alignment.centerRight,
+            child: Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: utils.customElevatedFunctionButton(
-                  btnName: 'Manage Products',
-                  bgColor: Colors.blueGrey,
-                  fgColor: Colors.white,
-                  onPressed: () {
-                    productController.manageProducts();
-                  },
-                ),
-              )),
-
+                    onPressed: () {
+                      productController.manageProducts();
+                    },
+                    btnName: 'Manage Products',
+                    bgColor: Colors.blueGrey,
+                    fgColor: Colors.white)),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: TextField(
-              controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Search products...',
+                hintText: 'Search Products...',
                 prefixIcon: const Icon(Icons.search),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -101,143 +114,377 @@ class _StockPageState extends State<StockPage> {
           ),
           Expanded(
             child: Obx(() {
+              if (!internetAvailable) {
+                return const Center(
+                  child: Text(
+                    'No Internet Connection.\nPlease check your network.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, color: Colors.red),
+                  ),
+                );
+              }
               if (productController.isLoading.value) {
-                return  Center(
+                return Center(
                     child: utils.customCircularProgressingIndicator());
               }
               if (productController.productsDetails.isEmpty) {
                 return const Center(
-                    child: Text('No Products Found!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),));
-
+                  child: Text(
+                    'No Products Found!',
+                    style: TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                );
               }
-
-              return SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: IconTheme(
-                    data: const IconThemeData(
-                      color: Colors.red,
-                    ),
-                    child: DataTable(
-                      sortAscending: _isAscending,
-                      sortColumnIndex: _sortColumnIndex,
-                      headingRowHeight: 40,
-                      dataRowHeight: 40,
-                      dataTextStyle: TextStyle(fontWeight: FontWeight.bold),
-                      headingRowColor:
-                          MaterialStateProperty.resolveWith<Color?>((states) {
-                        return Colors.blueGrey; // default heading background
-                      }),
-                      columns: [
-                        const DataColumn(
-                            label: Text(
-                          'Product Name',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )),
-                        const DataColumn(
-                            label: Text(
-                          'Catalogue Number',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )),
-                        const DataColumn(
-                            label: Text(
-                          'Lot Number',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )),
-                        const DataColumn(
-                            label: Text(
-                          'Number of Holes',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )),
-                        const DataColumn(
-                            label: Text(
-                          'AKL Number',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )),
-                        DataColumn(
-                          label: Text(
-                            'Pakistan',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _sortColumnIndex == 5
-                                  ? Colors.red
-                                  : Colors.white,
+              return Column(
+                children: [
+                  // Fixed header above table
+                  Container(
+                    color: Colors.blueGrey,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                            flex: 3,
+                            child: Text('Product Name',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                        const Expanded(
+                            flex: 2,
+                            child: Text('Catalogue Number',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                        const Expanded(
+                            flex: 2,
+                            child: Text('Lot Number',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                        const Expanded(
+                            flex: 1,
+                            child: Text('Holes',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                        const Expanded(
+                            flex: 2,
+                            child: Text('AKL Number',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                        Expanded(
+                          flex: 1,
+                          child: GestureDetector(
+                            onTap: () => _sort(
+                                (p) => p.availableStockInPakistan,
+                                5,
+                                !_isAscending),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Pakistan',
+                                  style: TextStyle(
+                                    color: _sortColumnIndex == 5
+                                        ? Colors.red
+                                        : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_sortColumnIndex == 5)
+                                  Icon(
+                                    _isAscending
+                                        ? Icons.arrow_upward
+                                        : Icons.arrow_downward,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                              ],
                             ),
                           ),
-                          numeric: true,
-                          onSort: (i, asc) =>
-                              _sort((p) => p.availableStockInPakistan, i, asc),
                         ),
-                        DataColumn(
-                          label: Text(
-                            'Indonesia',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _sortColumnIndex == 6
-                                  ? Colors.red
-                                  : Colors.white,
+                        Expanded(
+                          flex: 1,
+                          child: GestureDetector(
+                            onTap: () => _sort(
+                                (p) => p.availableStockInIndonesia,
+                                6,
+                                !_isAscending),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Indonesia',
+                                  style: TextStyle(
+                                    color: _sortColumnIndex == 6
+                                        ? Colors.red
+                                        : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_sortColumnIndex == 6)
+                                  Icon(
+                                    _isAscending
+                                        ? Icons.arrow_upward
+                                        : Icons.arrow_downward,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                              ],
                             ),
                           ),
-                          numeric: true,
-                          onSort: (i, asc) =>
-                              _sort((p) => p.availableStockInIndonesia, i, asc),
                         ),
-                        DataColumn(
-                          label: Text(
-                            'Total Stock',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _sortColumnIndex == 7
-                                  ? Colors.red
-                                  : Colors.white,
+                        Expanded(
+                          flex: 1,
+                          child: GestureDetector(
+                            onTap: () => _sort(
+                                (p) => p.totalAvailableStock, 7, !_isAscending),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Total Stock',
+                                  style: TextStyle(
+                                    color: _sortColumnIndex == 7
+                                        ? Colors.red
+                                        : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_sortColumnIndex == 7)
+                                  Icon(
+                                    _isAscending
+                                        ? Icons.arrow_upward
+                                        : Icons.arrow_downward,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                              ],
                             ),
                           ),
-                          numeric: true,
-                          onSort: (i, asc) =>
-                              _sort((p) => p.totalAvailableStock, i, asc),
                         ),
-
-                        const DataColumn(
-                            label: Text(
-                          'Actions',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        )), // <-- New column for button
+                        const Expanded(
+                            flex: 2,
+                            child: Align(
+                                alignment: Alignment.center,
+                                child: Text('Actions',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold)))),
                       ],
-                      rows: productController.filteredProducts.map((product) {
-                        return DataRow(
-                          cells: [
-                            _fancyCell(product.productName),
-                            _fancyCell(product.catalogueNumber),
-                            _fancyCell(product.lotNumber),
-                            _fancyCell(product.numberOfHoles),
-                            _fancyCell(product.aklNumber),
-                            _stockCell(product.availableStockInPakistan),
-                            _stockCell(product.availableStockInIndonesia),
-                            _stockCell(product.totalAvailableStock),
-                            DataCell(utils.customTextCancelButton(
-                                onPressed: () async {
-                                  await addStockInPakistan(
-                                      productNameUid: product.productNameUid,
-                                      productDetailsUid:
-                                          product.productDetailsUid,
-                                      existingStockInPakistan:
-                                          product.availableStockInPakistan,
-                                      existingStockInIndonesia:
-                                          product.availableStockInIndonesia,
-                                      productName: product.productName);
-                                },
-                                btnName: 'Manage Stock',
-                                textColor: Colors.blue)),
-                          ],
-                        );
-                      }).toList(),
                     ),
-                  ));
+                  ),
+
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children:
+                            productController.filteredProducts.map((product) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 3, horizontal: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                  bottom:
+                                      BorderSide(color: Colors.grey.shade300)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                    flex: 3,
+                                    child: _fancyCell(product.productName)),
+                                Expanded(
+                                    flex: 2,
+                                    child: _fancyCell(product.catalogueNumber)),
+                                Expanded(
+                                    flex: 2,
+                                    child: _fancyCell(product.lotNumber)),
+                                Expanded(
+                                    flex: 1,
+                                    child: _fancyCell(product.numberOfHoles)),
+                                Expanded(
+                                    flex: 2,
+                                    child: _fancyCell(product.aklNumber)),
+                                Expanded(
+                                    flex: 1,
+                                    child: _stockCell(
+                                        product.availableStockInPakistan)),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Expanded(
+                                    flex: 1,
+                                    child: _stockCell(
+                                        product.availableStockInIndonesia)),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Expanded(
+                                    flex: 1,
+                                    child: _stockCell(
+                                        product.totalAvailableStock)),
+                                Expanded(
+                                  flex: 2,
+                                  child: utils.customTextCancelButton(
+                                    onPressed: () async {
+                                      await addStockInPakistan(
+                                        productNameUid: product.productNameUid,
+                                        productDetailsUid:
+                                            product.productDetailsUid,
+                                        existingStockInPakistan:
+                                            product.availableStockInPakistan,
+                                        existingStockInIndonesia:
+                                            product.availableStockInIndonesia,
+                                        productName: product.productName,
+                                      );
+                                    },
+                                    btnName: 'Manage Stock',
+                                    textColor: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+              // return SizedBox(
+              //  width: MediaQuery.of(context).size.width,
+              //  child: IconTheme(
+              //    data: const IconThemeData(
+              //      color: Colors.red,
+              //    ),
+              //    child: DataTable(
+              //      sortAscending: _isAscending,
+              //      sortColumnIndex: _sortColumnIndex,
+              //      headingRowHeight: 40,
+              //      dataRowHeight: 40,
+              //      dataTextStyle: TextStyle(fontWeight: FontWeight.bold),
+              //      headingRowColor:
+              //      MaterialStateProperty.resolveWith<Color?>((states) {
+              //        return Colors.blueGrey; // default heading background
+              //      }),
+              //      columns: [
+              //        const DataColumn(
+              //            label: Text(
+              //              'Product Name',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //        const DataColumn(
+              //            label: Text(
+              //              'Catalogue Number',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //        const DataColumn(
+              //            label: Text(
+              //              'Lot Number',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //        const DataColumn(
+              //            label: Text(
+              //              'Number of Holes',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //        const DataColumn(
+              //            label: Text(
+              //              'AKL Number',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //        DataColumn(
+              //          label: Text(
+              //            'Pakistan',
+              //            style: TextStyle(
+              //              fontWeight: FontWeight.bold,
+              //              color: _sortColumnIndex == 5
+              //                  ? Colors.red
+              //                  : Colors.white,
+              //            ),
+              //          ),
+              //          numeric: true,
+              //          onSort: (i, asc) =>
+              //              _sort((p) => p.availableStockInPakistan, i, asc),
+              //        ),
+              //        DataColumn(
+              //          label: Text(
+              //            'Indonesia',
+              //            style: TextStyle(
+              //              fontWeight: FontWeight.bold,
+              //              color: _sortColumnIndex == 6
+              //                  ? Colors.red
+              //                  : Colors.white,
+              //            ),
+              //          ),
+              //          numeric: true,
+              //          onSort: (i, asc) =>
+              //              _sort((p) => p.availableStockInIndonesia, i, asc),
+              //        ),
+              //        DataColumn(
+              //          label: Text(
+              //            'Total Stock',
+              //            style: TextStyle(
+              //              fontWeight: FontWeight.bold,
+              //              color: _sortColumnIndex == 7
+              //                  ? Colors.red
+              //                  : Colors.white,
+              //            ),
+              //          ),
+              //          numeric: true,
+              //          onSort: (i, asc) =>
+              //              _sort((p) => p.totalAvailableStock, i, asc),
+              //        ),
+              //        const DataColumn(
+              //            label: Text(
+              //              'Actions',
+              //              style: TextStyle(
+              //                  fontWeight: FontWeight.bold, color: Colors.white),
+              //            )),
+              //      ],
+              //      rows: productController.filteredProducts.map((product) {
+              //        return DataRow(
+              //          cells: [
+              //            _fancyCell(product.productName),
+              //            _fancyCell(product.catalogueNumber),
+              //            _fancyCell(product.lotNumber),
+              //            _fancyCell(product.numberOfHoles),
+              //            _fancyCell(product.aklNumber),
+              //            _stockCell(product.availableStockInPakistan),
+              //            _stockCell(product.availableStockInIndonesia),
+              //            _stockCell(product.totalAvailableStock),
+              //            DataCell(utils.customTextCancelButton(
+              //                onPressed: () async {
+              //                  if (!internetAvailable) {
+              //                    _showNoInternetSnack();
+              //                    return;
+              //                  }
+              //                  await addStockInPakistan(
+              //                      productNameUid: product.productNameUid,
+              //                      productDetailsUid:
+              //                      product.productDetailsUid,
+              //                      existingStockInPakistan:
+              //                      product.availableStockInPakistan,
+              //                      existingStockInIndonesia:
+              //                      product.availableStockInIndonesia,
+              //                      productName: product.productName);
+              //                },
+              //                btnName: 'Manage Stock',
+              //                textColor: Colors.blue)),
+              //          ],
+              //        );
+              //      }).toList(),
+              //    ),
+              //  ));
             }),
           ),
         ],
@@ -245,22 +492,21 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
-  DataCell _fancyCell(String? text) {
-    return DataCell(
-      MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Text(
-            text ?? "-",
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
+  // Returns a Widget instead of DataCell
+  Widget _fancyCell(String? text) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Text(
+          text ?? "-",
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
     );
   }
 
-  DataCell _stockCell(String value) {
+  Widget _stockCell(String value) {
     int stock = int.tryParse(value) ?? 0;
     Color color;
     Icon icon;
@@ -275,22 +521,20 @@ class _StockPageState extends State<StockPage> {
       icon = const Icon(Icons.check, color: Colors.green, size: 16);
     }
 
-    return DataCell(
-      MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            children: [
-              icon,
-              const SizedBox(width: 6),
-              Text(value),
-            ],
-          ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(value),
+          ],
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +55,15 @@ class Utils {
         },
       ),
     );
+  }
+
+  static Future<bool> isInternetAvailable() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
   }
 
   String generateRealtimeUid() {
@@ -146,7 +156,8 @@ class Utils {
       onPressed: onPressed,
       child: Text(
         btnName,
-        style: TextStyle(color: textColor, letterSpacing: 2, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: textColor, letterSpacing: 2, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -162,7 +173,7 @@ class Utils {
     );
   }
 
-  Widget customCircularProgressingIndicator(){
+  Widget customCircularProgressingIndicator() {
     return const CircularProgressIndicator(
       color: Colors.red,
       strokeAlign: 0,

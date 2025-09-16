@@ -1,3 +1,4 @@
+import 'package:acma_intl_desktop/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../Controllers/nav_controller.dart';
@@ -98,8 +99,8 @@ class _SideDrawerState extends State<SideDrawer> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: Text(
-                        'Version 2.1.2',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        'Version: $currentVersion',
+                        style: TextStyle(color: Colors.black, fontSize: 12),
                       ),
                     ),
                   )
@@ -108,8 +109,8 @@ class _SideDrawerState extends State<SideDrawer> {
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
                       child: Text(
-                        '2.1.1',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        currentVersion,
+                        style: TextStyle(color: Colors.black, fontSize: 12),
                       ),
                     ),
                   )

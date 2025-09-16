@@ -87,7 +87,10 @@ class CustomerController extends GetxController {
         );
       }).toList();
     } catch (e) {
-      Get.snackbar("Error", e.toString());
+      utils.customSnackBar(
+          title: "Error",
+          message: 'An unknown error occurred!',
+          bgColor: Colors.red[200]);
     } finally {
       isLoading.value = false;
       update();

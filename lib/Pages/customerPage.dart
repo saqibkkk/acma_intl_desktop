@@ -7,8 +7,6 @@ import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 
-import '../APIs/productApi.dart';
-import '../Controllers/productController.dart';
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({super.key});
@@ -21,11 +19,34 @@ class _ClientsPageState extends State<ClientsPage> {
   final customerController = Get.put(CustomerController());
   final customerApi = Get.put(CustomerApi());
   final Utils utils = Utils();
+  bool internetAvailable = true;
 
   @override
   void initState() {
     super.initState();
-    customerController.fetchCustomers();
+    _checkInternet();
+
+  }
+
+  Future<void> _checkInternet() async {
+    internetAvailable = await Utils.isInternetAvailable();
+    if (!internetAvailable) {
+      _showNoInternet();
+    } else {
+      customerController.fetchCustomers();
+    }
+    setState(() {});
+  }
+
+  void _showNoInternet() {
+    Get.snackbar(
+      "No Internet",
+      "Internet connection is not available. Please check your network.",
+      backgroundColor: Colors.redAccent,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 5),
+    );
   }
 
   @override
@@ -67,6 +88,17 @@ class _ClientsPageState extends State<ClientsPage> {
           ),
           Expanded(
             child: Obx(() {
+
+              if (!internetAvailable) {
+                return const Center(
+                  child: Text(
+                    'No Internet Connection.\nPlease check your network.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, color: Colors.red),
+                  ),
+                );
+              }
+
               if (customerController.isLoading.value) {
                 return Center(
                     child: utils.customCircularProgressingIndicator());
